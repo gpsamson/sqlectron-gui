@@ -31,8 +31,8 @@ export const OPEN_QUERY_FAILURE = 'OPEN_QUERY_FAILURE';
 export const UPDATE_QUERY = 'UPDATE_QUERY';
 
 
-export function newQuery (database) {
-  return { type: NEW_QUERY, database };
+export function newQuery (database, databaseId) {
+  return { type: NEW_QUERY, database, databaseId };
 }
 
 
@@ -60,7 +60,7 @@ export function executeQueryIfNeeded (query, queryId) {
 }
 
 
-export function executeDefaultSelectQueryIfNeeded (database, table, schema) {
+export function executeDefaultSelectQueryIfNeeded (database, databaseId, table, schema) {
   return async (dispatch, getState) => {
     const currentState = getState();
     const dbConn = getDBConnByName(database);
@@ -71,7 +71,7 @@ export function executeDefaultSelectQueryIfNeeded (database, table, schema) {
     }
 
     if (needNewQuery(currentState, database, queryDefaultSelect)) {
-      dispatch({ type: NEW_QUERY, database, table });
+      dispatch({ type: NEW_QUERY, database, databaseId, table });
     }
 
     dispatch({ type: UPDATE_QUERY, query: queryDefaultSelect, table });
@@ -115,13 +115,13 @@ export function appendQuery (query) {
 }
 
 
-export function copyToClipboard (rows, type) {
+export function copyToClipboard (fields, rows, type) {
   return async dispatch => {
     dispatch({ type: COPY_QUERY_RESULT_TO_CLIPBOARD_REQUEST });
     try {
       let value;
       if (type === 'CSV') {
-        value = await stringifyResultToCSV(rows);
+        value = await stringifyResultToCSV(fields, rows);
       } else {
         // force the next dispatch be separately
         // handled of the previous one
@@ -203,12 +203,23 @@ function executeQuery (query, isDefaultSelect = false, dbConnection, queryId) {
       const state = getState();
       const dbConn = dbConnection || getCurrentDBConn(state);
 
+      // Get the current query productId and product name
+      const databaseId = state.queries.queriesById[queryId].databaseId;
+      const database = state.queries.queriesById[queryId].database;
+
+      // Get the list of visible events and props.
+      const events = state.events.itemsByDatabase[database]
+      const properties = state.properties.itemsByDatabase[database]
+
       let remoteResult;
       if (canCancelQuery(state)) {
-        executingQueries[queryId] = dbConn.query(query);
+        console.log('can cancel query');
+        executingQueries[queryId] = dbConn.query(query, databaseId, events, properties);
         remoteResult = await executingQueries[queryId].execute();
       } else {
-        remoteResult = await dbConn.executeQuery(query);
+        console.log('else statement');
+        console.log(databaseId);
+        remoteResult = await dbConn.executeQuery(query, databaseId, events, properties);
       }
 
       // Remove any "reference" to the remote IPC object
@@ -216,6 +227,7 @@ function executeQuery (query, isDefaultSelect = false, dbConnection, queryId) {
 
       dispatch({ type: EXECUTE_QUERY_SUCCESS, query, results });
     } catch (error) {
+      console.log(error);
       dispatch({ type: EXECUTE_QUERY_FAILURE, query, error });
     } finally {
       delete executingQueries[queryId];
@@ -242,15 +254,19 @@ export function cancelQuery (queryId) {
 }
 
 
-function stringifyResultToCSV(rows) {
+function stringifyResultToCSV(fields, rows) {
   if (!rows.length) {
     return '';
   }
+  
+  console.log(fields)
 
-  const header = Object.keys(rows[0]).reduce((_header, col) => {
-    _header[col] = col; // eslint-disable-line no-param-reassign
+  const header = fields.reduce((_header, col) => {
+    _header[col.name] = col.name; // eslint-disable-line no-param-reassign
     return _header;
   }, {});
+
+  console.log(header)
 
   const data = [
     header,

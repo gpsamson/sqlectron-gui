@@ -167,6 +167,7 @@ export default class QueryResult extends Component {
     }
 
     const totalQueries = results.length;
+    console.log(results);
     return (
       <div id="query-result">
         {

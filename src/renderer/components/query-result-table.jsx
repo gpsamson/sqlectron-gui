@@ -185,7 +185,7 @@ export default class QueryResultTable extends Component {
   }
 
   renderHeaderTopBar() {
-    const { rows, rowCount, onCopyToClipboardClick } = this.props;
+    const { fields, rows, rowCount, onCopyToClipboardClick } = this.props;
     const styleCopied = { display: this.state.showCopied ? 'inline-block' : 'none' };
     const styleButtons = { display: this.state.showCopied ? 'none' : 'inline-block' };
 
@@ -197,10 +197,10 @@ export default class QueryResultTable extends Component {
           <a className="detail" style={styleCopied}>Copied</a>
           <a className="detail"
             style={styleButtons}
-            onClick={() => onCopyToClipboardClick(rows, 'CSV')}>CSV</a>
+            onClick={() => onCopyToClipboardClick(fields, rows, 'CSV')}>CSV</a>
           <a className="detail"
             style={styleButtons}
-            onClick={() => onCopyToClipboardClick(rows, 'JSON')}>JSON</a>
+            onClick={() => onCopyToClipboardClick(null, rows, 'JSON')}>JSON</a>
         </div>
       );
     }
@@ -238,7 +238,6 @@ export default class QueryResultTable extends Component {
     const scrollBarHeight = 15;
     const rowHeight = 28;
     const fixedHeightRows = ((rowCount || 1) * rowHeight) + scrollBarHeight;
-
     return (
       <Grid
         className="grid-body"

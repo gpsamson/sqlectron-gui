@@ -38,6 +38,8 @@ export default class DatabaseList extends Component {
       databases,
       isFetching,
       tablesByDatabase,
+      propertiesByDatabase,
+      eventsByDatabase,
       columnsByTable,
       triggersByTable,
       indexesByTable,
@@ -61,7 +63,7 @@ export default class DatabaseList extends Component {
 
     if (!databases.length) {
       return (
-        <div className="ui grey item">No results found</div>
+        <div className="ui grey item">No products found</div>
       );
     }
 
@@ -76,6 +78,8 @@ export default class DatabaseList extends Component {
             client={client}
             database={database}
             tables={tablesByDatabase[database.name]}
+            properties={propertiesByDatabase[database.name]}
+            events={eventsByDatabase[database.name]}
             columnsByTable={columnsByTable[database.name]}
             triggersByTable={triggersByTable[database.name]}
             indexesByTable={indexesByTable[database.name]}

@@ -84,15 +84,17 @@ export default class DatabaseListItem extends Component {
   }
 
   onHeaderDoubleClick(database) {
-    if (!this.isMetadataLoaded()) {
-      this.props.onSelectDatabase(database);
+    /* if (!this.isMetadataLoaded()) {
       return;
-    }
+    } */
+    this.props.onSelectDatabase(database);
+  }
 
+  onTriangleClick(database) {
     this.toggleCollapse();
   }
 
-  filterItems(filterInput, items) {
+  filterItems(filterInput, items = []) {
     const regex = RegExp(filterInput, 'i');
     return items.filter(item => regex.test(item.name));
   }
@@ -120,6 +122,8 @@ export default class DatabaseListItem extends Component {
     const {
       client,
       tables,
+      properties,
+      events,
       columnsByTable,
       triggersByTable,
       indexesByTable,
@@ -136,15 +140,20 @@ export default class DatabaseListItem extends Component {
     let filteredViews;
     let filteredFunctions;
     let filteredProcedures;
+    let filteredProperties;
+    let filteredEvents;
 
     const cssStyleItems = {};
     if (this.state.collapsed || !isMetadataLoaded) {
       cssStyleItems.display = 'none';
-    } else {
+    } else if (filter !== undefined && filter !== '' && !filter !== null) {
+      console.log(`Filter is: ${filter}`)
       filteredTables = this.filterItems(filter, tables);
       filteredViews = this.filterItems(filter, views);
       filteredFunctions = this.filterItems(filter, functions);
       filteredProcedures = this.filterItems(filter, procedures);
+      filteredProperties = this.filterItems(filter, properties);
+      filteredEvents = this.filterItems(filter, events)
     }
 
     const loadingContent = (
@@ -180,9 +189,17 @@ export default class DatabaseListItem extends Component {
           onGetSQLScript={onGetSQLScript} />
         <DatabaseListItemMetatada
           collapsed
-          title="Views"
+          title="Events"
           client={client}
-          items={filteredViews || views}
+          items={filteredEvents || events}
+          database={database}
+          onExecuteDefaultQuery={onExecuteDefaultQuery}
+          onGetSQLScript={onGetSQLScript} />
+        <DatabaseListItemMetatada
+          collapsed
+          title="Properties"
+          client={client}
+          items={filteredProperties || properties}
           database={database}
           onExecuteDefaultQuery={onExecuteDefaultQuery}
           onGetSQLScript={onGetSQLScript} />
@@ -191,13 +208,6 @@ export default class DatabaseListItem extends Component {
           title="Functions"
           client={client}
           items={filteredFunctions || functions}
-          database={database}
-          onGetSQLScript={onGetSQLScript} />
-        <DatabaseListItemMetatada
-          collapsed
-          title="Procedures"
-          client={client}
-          items={filteredProcedures || procedures}
           database={database}
           onGetSQLScript={onGetSQLScript} />
       </div>
@@ -221,9 +231,10 @@ export default class DatabaseListItem extends Component {
         onDoubleClick={() => this.onHeaderDoubleClick(database)}
         onContextMenu={::this.onContextMenu}
         style={STYLE.database}>
-        <i className={`${collapseCssClass} triangle icon`}
-          style={{ cursor: 'pointer' }}
-          onClick={() => this.onHeaderDoubleClick(database)}></i>
+        {isMetadataLoaded &&
+          <i className={`${collapseCssClass} triangle icon`}
+            style={{ cursor: 'pointer' }}
+            onClick={() => ::this.onTriangleClick(database)}></i>}
         <i className="database icon"></i>
         {database.name}
       </span>

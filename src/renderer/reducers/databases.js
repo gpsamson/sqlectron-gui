@@ -33,7 +33,7 @@ export default function (state = INITIAL_STATE, action) {
         ...state,
         isFetching: false,
         didInvalidate: false,
-        items: action.databases.map(name => ({ name })),
+        items: action.databases,
         error: null,
       };
     }

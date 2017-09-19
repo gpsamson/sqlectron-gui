@@ -112,20 +112,6 @@ export default class DatabaseItem extends Component {
           table={name}
           itemsByTable={columnsByTable}
           database={database} />
-        <TableSubmenu
-          collapsed
-          title="Triggers"
-          schema={schema}
-          table={name}
-          itemsByTable={triggersByTable}
-          database={database} />
-        <TableSubmenu
-          collapsed
-          title="Indexes"
-          schema={schema}
-          table={name}
-          itemsByTable={indexesByTable}
-          database={database} />
       </div>
     );
   }

@@ -63,7 +63,7 @@ export default function(state = INITIAL_STATE, action) {
     case types.CLOSE_CONNECTION:
     case serverTypes.START_EDITING_SERVER:
     case serverTypes.FINISH_EDITING_SERVER: {
-      return INITIAL_STATE;
+      return state;
     }
 
     default : return state;

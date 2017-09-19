@@ -14,7 +14,8 @@ import triggers from './triggers';
 import indexes from './indexes';
 import sqlscripts from './sqlscripts';
 import keys from './keys';
-
+import properties from './properties';
+import events from './events';
 
 const rootReducer = combineReducers({
   config,
@@ -32,6 +33,8 @@ const rootReducer = combineReducers({
   indexes,
   sqlscripts,
   keys,
+  properties,
+  events,
 });
 
 

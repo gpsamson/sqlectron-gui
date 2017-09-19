@@ -10,14 +10,9 @@ const STYLE = {
 };
 
 
-function onGithubClick(event) {
+function onDocumentationClick(event) {
   event.preventDefault();
-  shell.openExternal('https://github.com/sqlectron/sqlectron-gui');
-}
-
-function onShortcutsClick(event) {
-  event.preventDefault();
-  shell.openExternal('https://github.com/sqlectron/sqlectron-gui/wiki/Keyboard-Shortcuts');
+  shell.openExternal('https://developers.kissmetrics.com/v3/docs/kissmetrics-sql-interface');
 }
 
 
@@ -25,14 +20,7 @@ const Footer = ({ status }) => (
   <div className="ui bottom fixed menu borderless" style={STYLE.footer}>
     <div style={STYLE.status}>{status}</div>
     <div className="right menu">
-      <div className="item">
-        <LogStatus />
-        <UpdateChecker />
-      </div>
-      <a href="#" className="item" onClick={onGithubClick}>Github</a>
-      <a href="#" className="item" title="Keyboard Shortcuts" onClick={onShortcutsClick}>
-        <i className="keyboard icon" />
-      </a>
+      <a href="#" className="item" onClick={onDocumentationClick}>Documentation</a>
     </div>
   </div>
 );

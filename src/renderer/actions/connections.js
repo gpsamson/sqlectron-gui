@@ -40,7 +40,7 @@ export function getDBConnByName(database) {
 }
 
 
-export function connect (id, databaseName, reconnecting = false, sshPassphrase) {
+export function connect (id, databaseName, databaseId, reconnecting = false, sshPassphrase) {
   return async (dispatch, getState) => {
     let server;
     let dbConn;
@@ -62,6 +62,8 @@ export function connect (id, databaseName, reconnecting = false, sshPassphrase) 
       // don't have any effect. We need to clone this data and use the new state.
       server = JSON.parse(JSON.stringify(server));
 
+      console.log(server);
+
       defaultDatabase = sqlectron.db.CLIENTS.find(c => c.key === server.client).defaultDatabase;
       database = databaseName || server.database || defaultDatabase;
 
@@ -69,6 +71,7 @@ export function connect (id, databaseName, reconnecting = false, sshPassphrase) 
         type: CONNECTION_REQUEST,
         server,
         database,
+        databaseId,
         reconnecting,
         isServerConnection: !databaseName,
       });
@@ -88,17 +91,19 @@ export function connect (id, databaseName, reconnecting = false, sshPassphrase) 
       }
 
       dbConn = serverSession.db(database);
+
       if (dbConn) {
         dispatch({ type: CONNECTION_SUCCESS, server, database, config, reconnecting });
         return;
       }
 
+
       dbConn = serverSession.createConnection(database);
       await dbConn.connect();
 
-      dispatch({ type: CONNECTION_SUCCESS, server, database, config, reconnecting });
+      dispatch({ type: CONNECTION_SUCCESS, server, database, databaseId, config, reconnecting });
     } catch (error) {
-      dispatch({ type: CONNECTION_FAILURE, server, database, error });
+      dispatch({ type: CONNECTION_FAILURE, server, database, databaseId, error });
       if (dbConn) {
         dbConn.disconnect();
       }

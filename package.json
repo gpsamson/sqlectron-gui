@@ -1,5 +1,5 @@
 {
-  "name": "Sqlectron",
+  "name": "KM-SQL-Interface",
   "version": "1.25.0",
   "description": "A simple and lightweight SQL client with cross database and platform support",
   "author": {
@@ -82,6 +82,9 @@
     "babel-polyfill": "^6.22.0",
     "bunyan": "^1.8.5",
     "lodash.defaultsdeep": "^4.6.0",
+    "lodash.filter": "^4.6.0",
+    "lodash.find": "^4.6.0",
+    "papaparse": "^4.3.6",
     "sqlectron-core": "^7.9.0"
   },
   "devDependencies": {

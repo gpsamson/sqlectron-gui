@@ -3,7 +3,7 @@ import { shell } from 'electron'; // eslint-disable-line import/no-unresolved
 
 require('./header.css');
 
-const LOGO_PATH = require('./logo-128px.png');
+const LOGO_PATH = require('./km-logo.png');
 
 
 function onSiteClick(event) {
@@ -11,28 +11,7 @@ function onSiteClick(event) {
   shell.openExternal('https://sqlectron.github.io');
 }
 
-
-function renderBreadcrumb(items) {
-  return (
-    <div className="ui breadcrumb" style={{ margin: '0 auto' }}>
-      {items.map(({ icon, label }, index) => {
-        const isLast = (index !== items.length - 1);
-        return (
-          <span key={index + label}>
-            <i className={`${icon} icon`}></i>
-            <a className={`section ${isLast ? 'active' : ''}`}>
-              {label}
-            </a>
-            {isLast && <div className="divider"> / </div>}
-          </span>
-        );
-      })}
-    </div>
-  );
-}
-
-
-const Header = ({ items, onCloseConnectionClick, onReConnectionClick }) => {
+const Header = ({ server, items, onEditClick, onCloseConnectionClick, onReConnectionClick }) => {
   const visibilityButtons = onCloseConnectionClick ? 'visible' : 'hidden';
   const styleItem = { paddingLeft: 0, paddingTop: 0, paddingBottom: 0 };
   return (
@@ -42,21 +21,16 @@ const Header = ({ items, onCloseConnectionClick, onReConnectionClick }) => {
       </a>
       <div style={{ margin: '0 auto' }}>
         <div className="item" style={{ marginLeft: '-109px', marginRight: '-94px' }}>
-          {renderBreadcrumb(items)}
+
         </div>
       </div>
       <div className="right menu" style={{ visibility: visibilityButtons }}>
         <div className="item borderless" style={styleItem}>
           <div className="ui mini basic icon buttons">
-            <button className="ui button"
-              title="Reconnect"
-              onClick={onReConnectionClick}>
-              <i className="plug icon"></i>
-            </button>
             <button className="ui icon button"
-              title="Close connection"
-              onClick={onCloseConnectionClick}>
-              <i className="power icon"></i>
+              title="Settings"
+              onClick={() => onEditClick(server)}>
+              User Settings
             </button>
           </div>
         </div>
@@ -67,7 +41,9 @@ const Header = ({ items, onCloseConnectionClick, onReConnectionClick }) => {
 
 
 Header.propTypes = {
+  server: PropTypes.object.isRequired,
   items: PropTypes.array.isRequired,
+  onEditClick: PropTypes.func,
   onCloseConnectionClick: PropTypes.func,
   onReConnectionClick: PropTypes.func,
 };

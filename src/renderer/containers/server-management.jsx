@@ -89,7 +89,7 @@ class ServerManagerment extends Component {
     const selected = (
       servers.editingId !== null
       ? servers.items.find(srv => srv.id === servers.editingId)
-      : {}
+      : { client: 'kissmetrics' }
     );
     const filteredServers = this.filterServers(filter, servers.items);
 

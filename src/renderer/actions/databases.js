@@ -126,13 +126,14 @@ function shouldFetchDatabases (state) {
 }
 
 
-function fetchDatabases (filter) {
+export function fetchDatabases (filter) {
   return async (dispatch, getState) => {
     dispatch({ type: FETCH_DATABASES_REQUEST });
     try {
       const dbConn = getCurrentDBConn(getState());
       const databases = await dbConn.listDatabases(filter);
       dispatch({ type: FETCH_DATABASES_SUCCESS, databases });
+      return databases;
     } catch (error) {
       dispatch({ type: FETCH_DATABASES_FAILURE, error });
     }

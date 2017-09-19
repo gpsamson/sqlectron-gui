@@ -39,6 +39,20 @@ export default class DbMetadataList extends Component {
     this.setState({ collapsed: !this.state.collapsed });
   }
 
+  shouldComponentUpdate(nextProps, nextState) {
+    // Only re-render if items length is different.
+    if (
+      this.props.title === 'Tables' ||
+      (!this.props.items && nextProps.items) ||
+      (this.props.items && nextProps.items && this.props.items.length !== nextProps.items.length) ||
+      (this.state.collapsed !== nextState.collapsed)
+    ) {
+      return true
+    }
+
+    return false
+  }
+
   renderHeader() {
     const {
       items,

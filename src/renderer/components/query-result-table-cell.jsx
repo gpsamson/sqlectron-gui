@@ -44,7 +44,7 @@ export default class TableCell extends Component {
 
   getValue() {
     const { rowIndex, data, col } = this.props;
-    return data[rowIndex][col];
+    return data[rowIndex][col] || '';
   }
 
   render() {

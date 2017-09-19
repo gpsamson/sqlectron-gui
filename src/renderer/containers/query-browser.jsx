@@ -11,6 +11,8 @@ import * as ConnActions from '../actions/connections.js';
 import * as QueryActions from '../actions/queries';
 import * as DbAction from '../actions/databases';
 import { fetchTablesIfNeeded, selectTablesForDiagram } from '../actions/tables';
+import { fetchPropertiesIfNeeded } from '../actions/properties'
+import { fetchEventsIfNeeded } from '../actions/events'
 import { fetchSchemasIfNeeded } from '../actions/schemas';
 import { fetchTableColumnsIfNeeded } from '../actions/columns';
 import { fetchTableTriggersIfNeeded } from '../actions/triggers';
@@ -29,6 +31,9 @@ import Loader from '../components/loader.jsx';
 import PromptModal from '../components/prompt-modal.jsx';
 import MenuHandler from '../menu-handler';
 import { requireLogos } from '../components/require-context';
+import * as ServersActions from '../actions/servers.js';
+import ServerModalForm from '../components/server-modal-form.jsx';
+import filter from 'lodash.filter'
 
 
 require('./query-browser.css');
@@ -79,6 +84,7 @@ class QueryBrowserContainer extends Component {
     router: PropTypes.object.isRequired,
     params: PropTypes.object.isRequired,
     children: PropTypes.node,
+    servers: PropTypes.object.isRequired,
   };
 
   constructor(props, context) {
@@ -99,8 +105,9 @@ class QueryBrowserContainer extends Component {
     this.setMenus();
   }
 
-  componentWillReceiveProps (nextProps) {
-    const { dispatch, router, connections } = nextProps;
+  async componentWillReceiveProps (nextProps) {
+    // console.log(nextProps)
+    const { dispatch, router, connections, databases } = nextProps;
 
     if (connections.error ||
        (!connections.connecting && !connections.server && !connections.waitingSSHPassword)
@@ -114,18 +121,19 @@ class QueryBrowserContainer extends Component {
     }
 
     const lastConnectedDB = connections.databases[connections.databases.length - 1];
-    const filter = connections.server.filter;
-
-    dispatch(DbAction.fetchDatabasesIfNeeded(filter));
+    const serverFilter = connections.server.filter;
+    dispatch(DbAction.fetchDatabasesIfNeeded(serverFilter));
     dispatch(fetchSchemasIfNeeded(lastConnectedDB));
-    dispatch(fetchTablesIfNeeded(lastConnectedDB, filter));
-    dispatch(fetchViewsIfNeeded(lastConnectedDB, filter));
-    dispatch(fetchRoutinesIfNeeded(lastConnectedDB, filter));
+    dispatch(fetchTablesIfNeeded(lastConnectedDB, serverFilter));
+    dispatch(fetchPropertiesIfNeeded(databases.items.find(d => d.name === lastConnectedDB).name, databases.items.find(d => d.name === lastConnectedDB).id));
+    dispatch(fetchEventsIfNeeded(databases.items.find(d => d.name === lastConnectedDB).name, databases.items.find(d => d.name === lastConnectedDB).id));
+    dispatch(fetchViewsIfNeeded(lastConnectedDB, serverFilter));
+    dispatch(fetchRoutinesIfNeeded(lastConnectedDB, serverFilter));
 
     this.setMenus();
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps) {
     const elem = ReactDOM.findDOMNode(this.refs.tabList);
     if (!elem) {
       return;
@@ -136,22 +144,43 @@ class QueryBrowserContainer extends Component {
     for (const child of elem.children) {
       this.tabListTotalWidthChildren += child.offsetWidth;
     }
+
+    const { dispatch, router, connections, databases, queries } = this.props;
+    const { databases: prevDatabases, connections: prevConnections } = prevProps
+    const connectedDB = connections.databases[connections.databases.length - 1];
+    const prevConnectedDB = prevConnections.databases[prevConnections.databases.length - 1];
+    const noConnectedDB = !connectedDB && !prevConnectedDB
+
+    const hasPrevDatabases = prevDatabases.items.length !== 0
+    const hasDatabases = databases.items.length !== 0
+    const hasLoadedDatabases = !hasPrevDatabases && hasDatabases
+
+    // Open a new default tab when the products have loaded.
+    if (noConnectedDB && hasLoadedDatabases) {
+        console.log('Connecting to DB #0')
+        this.props.dispatch(ConnActions.connect('kissmetrics', databases.items[0].name, databases.items[0].id));
+    }
   }
 
   componentWillUnmount() {
     this.menuHandler.removeAllMenus();
   }
 
+  async onEditClick(server) {
+    const { dispatch } = this.props;
+    await dispatch(ServersActions.startEditing(server.id));
+  }
+
   onSelectDatabase(database) {
     const { dispatch, params } = this.props;
 
-    dispatch(ConnActions.connect(params.id, database.name));
+    dispatch(ConnActions.connect(params.id, database.name, database.id));
   }
 
   onExecuteDefaultQuery(database, table) {
     const schema = table.schema || this.props.connections.server.schema;
     this.props.dispatch(
-      QueryActions.executeDefaultSelectQueryIfNeeded(database.name, table.name, schema)
+      QueryActions.executeDefaultSelectQueryIfNeeded(database.name, database.id, table.name, schema)
     );
   }
 
@@ -301,8 +330,8 @@ class QueryBrowserContainer extends Component {
     this.props.dispatch(QueryActions.openQuery());
   }
 
-  copyToClipboard (rows, type) {
-    this.props.dispatch(QueryActions.copyToClipboard(rows, type));
+  copyToClipboard (fields, rows, type) {
+    this.props.dispatch(QueryActions.copyToClipboard(fields, rows, type));
   }
 
   handleExecuteQuery (sqlQuery) {
@@ -310,6 +339,8 @@ class QueryBrowserContainer extends Component {
     if (!currentQuery) {
       return;
     }
+
+    console.log(currentQuery)
 
     this.props.dispatch(QueryActions.executeQueryIfNeeded(sqlQuery, currentQuery.id));
   }
@@ -351,7 +382,7 @@ class QueryBrowserContainer extends Component {
   }
 
   newTab() {
-    this.props.dispatch(QueryActions.newQuery(this.getCurrentQuery().database));
+    this.props.dispatch(QueryActions.newQuery(this.getCurrentQuery().database, this.getCurrentQuery().databaseId));
   }
 
   closeTab() {
@@ -405,13 +436,13 @@ class QueryBrowserContainer extends Component {
 
     const currentDB = this.getCurrentQuery().database;
 
-
-    const menu = queries.queryIds.map(queryId => {
-      const isCurrentQuery = queryId === queries.currentQueryId;
-      const buildContent = () => {
-        const isRenaming = this.state.renamingTabQueryId === queryId;
-        if (isRenaming) {
-          return (
+    const menu = queries.queryIds
+      .map(queryId => {
+        const isCurrentQuery = queryId === queries.currentQueryId;
+        const buildContent = () => {
+          const isRenaming = this.state.renamingTabQueryId === queryId;
+          if (isRenaming) {
+            return (
             <div className="ui input">
               <input
                 autoFocus
@@ -435,9 +466,9 @@ class QueryBrowserContainer extends Component {
                 defaultValue={queries.queriesById[queryId].name} />
             </div>
           );
-        }
+          }
 
-        return (
+          return (
           <div>
             {queries.queriesById[queryId].name}
             <button className="right floated ui icon button mini"
@@ -450,16 +481,16 @@ class QueryBrowserContainer extends Component {
             </button>
           </div>
         );
-      };
+        };
 
-      return (
+        return (
         <Tab key={queryId}
           onDoubleClick={() => this.onTabDoubleClick(queryId)}
           className={`item ${isCurrentQuery ? 'active' : ''}`}>
           {buildContent()}
         </Tab>
       );
-    });
+      });
 
     const { disabledFeatures } = sqlectron.db.CLIENTS
       .find(dbClient => dbClient.key === connections.server.client);
@@ -468,14 +499,15 @@ class QueryBrowserContainer extends Component {
 
     const panels = queries.queryIds.map(queryId => {
       const query = queries.queriesById[queryId];
-
       return (
         <TabPanel key={queryId}>
           <Query
+            dispatch={dispatch}
             ref={`queryBox_${queryId}`}
             client={connections.server.client}
             allowCancel={allowCancel}
             query={query}
+            queries={queries.queriesById}
             enabledAutoComplete={queries.enabledAutoComplete}
             enabledLiveAutoComplete={queries.enabledLiveAutoComplete}
             database={currentDB}
@@ -542,6 +574,45 @@ class QueryBrowserContainer extends Component {
     );
   }
 
+  onConnectClick({ id }) {
+    this.props.router.push(`/server/${id}`);
+  }
+
+  onTestConnectionClick(server) {
+    const { dispatch } = this.props;
+    dispatch(ConnActions.test(server));
+  }
+
+  onAddClick() {
+    const { dispatch } = this.props;
+    dispatch(ServersActions.startEditing());
+  }
+
+
+  onDuplicateClick(server) {
+    const { dispatch } = this.props;
+    dispatch(ServersActions.duplicateServer({ server }));
+  }
+
+  onSaveClick(server) {
+    const { dispatch, servers } = this.props;
+    dispatch(ServersActions.saveServer({ id: servers.editingId, server }));
+  }
+
+  onCancelClick() {
+    const { dispatch } = this.props;
+    dispatch(ServersActions.finisEditing());
+  }
+
+  onRemoveClick() {
+    const { dispatch, servers } = this.props;
+    dispatch(ServersActions.removeServer({ id: servers.editingId }));
+  }
+
+  onFilterChange(event) {
+    this.setState({ filter: event.target.value });
+  }
+
   render() {
     const { filter } = this.state;
     const {
@@ -550,11 +621,14 @@ class QueryBrowserContainer extends Component {
       databases,
       schemas,
       tables,
+      properties,
+      events,
       columns,
       triggers,
       indexes,
       views,
       routines,
+      servers,
     } = this.props;
     const currentDB = this.getCurrentQuery() ? this.getCurrentQuery().database : null;
 
@@ -569,9 +643,9 @@ class QueryBrowserContainer extends Component {
       );
     }
 
-    const isLoading = (!connections.connected);
+    const isLoading = (!connections.connected) || properties.isFetching || events.isFetching;
     if (isLoading && (!connections.server || !this.getCurrentQuery())) {
-      return <Loader message={status} type="page" />;
+      return <Loader message={status || 'Loading products, events, and properties.'} type="page" />;
     }
 
     const breadcrumb = connections.server ? [
@@ -579,12 +653,22 @@ class QueryBrowserContainer extends Component {
       { icon: 'database', label: this.getCurrentQuery().database },
     ] : [];
 
+    const testConnection = {
+      connected: connections.testConnected,
+      connecting: connections.testConnecting,
+      error: connections.testError,
+    };
+
     const filteredDatabases = this.filterDatabases(filter, databases.items);
+
     return (
       <div style={STYLES.wrapper}>
-        {isLoading && <Loader message={status} type="page" />}
+        {isLoading && <Loader message={status || 'Loading products, events, and properties.'} type="page" />}
         <div style={STYLES.header}>
-          <Header items={breadcrumb}
+          <Header
+            server={connections.server}
+            items={breadcrumb}
+            onEditClick={::this.onEditClick}
             onCloseConnectionClick={::this.onCloseConnectionClick}
             onReConnectionClick={::this.onReConnectionClick} />
         </div>
@@ -605,13 +689,6 @@ class QueryBrowserContainer extends Component {
                     className="ui mini left spaced image right"
                     src={CLIENTS[connections.server.client].image} />
                 </div>
-                <div className="item">
-                  <DatabaseFilter
-                    ref="databaseFilter"
-                    value={filter}
-                    isFetching={databases.isFetching}
-                    onFilterChange={::this.onFilterChange} />
-                </div>
                 <DatabaseList
                   ref="databaseList"
                   client={connections.server.client}
@@ -620,6 +697,8 @@ class QueryBrowserContainer extends Component {
                   isFetching={databases.isFetching}
                   schemasByDatabase={schemas.itemsByDatabase}
                   tablesByDatabase={tables.itemsByDatabase}
+                  propertiesByDatabase={properties.itemsByDatabase}
+                  eventsByDatabase={events.itemsByDatabase}
                   columnsByTable={columns.columnsByTable}
                   triggersByTable={triggers.triggersByTable}
                   indexesByTable={indexes.indexesByTable}
@@ -640,9 +719,20 @@ class QueryBrowserContainer extends Component {
           </div>
           {this.props.databases.showingDiagram && this.renderDatabaseDiagramModal()}
         </div>
+
         <div style={STYLES.footer}>
           <Footer status={status} />
         </div>
+        {servers.isEditing && <ServerModalForm
+          server={servers.items.find(srv => srv.id === 'kissmetrics')}
+          error={servers.error}
+          testConnection={testConnection}
+          onTestConnectionClick={::this.onTestConnectionClick}
+          onDuplicateClick={::this.onDuplicateClick}
+          onSaveClick={::this.onSaveClick}
+          onCancelClick={::this.onCancelClick}
+          onRemoveClick={::this.onRemoveClick} />}
+
       </div>
     );
   }
@@ -664,6 +754,9 @@ function mapStateToProps (state) {
     sqlscripts,
     keys,
     status,
+    servers,
+    properties,
+    events
   } = state;
 
   return {
@@ -680,6 +773,9 @@ function mapStateToProps (state) {
     sqlscripts,
     keys,
     status,
+    servers,
+    properties,
+    events
   };
 }
 

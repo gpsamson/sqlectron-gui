@@ -1,5 +1,6 @@
 import * as connTypes from '../actions/connections';
 import * as types from '../actions/queries';
+import filter from 'lodash.filter'
 
 
 const INITIAL_STATE = {
@@ -44,7 +45,7 @@ export default function (state = INITIAL_STATE, action) {
 
       newState.queryIds.splice(index, 1);
       delete newState.queriesById[state.currentQueryId];
-
+      console.log(newState.queryIds)
       if (newState.queryIds.length >= 1) {
         return newState;
       }
@@ -178,6 +179,7 @@ function addNewQuery(state, action) {
   const newQuery = {
     id: newId,
     database: action.database,
+    databaseId: action.databaseId,
     name: createQueryName(newId, action.database, action.table),
     filename: null,
     isExecuting: false,
@@ -191,6 +193,22 @@ function addNewQuery(state, action) {
     copied: null,
     resultItemsPerPage: itemsPerPage,
   };
+
+  // Filter out undefined queries if the new query is valid.
+  if (newQuery.database !== undefined) {
+    const invalidQueries = filter(state.queriesById, q => q.database === undefined)
+    const invalidQueryIds = invalidQueries.map(q => q.id)
+
+    // Delete objects
+    invalidQueryIds.forEach(id => {
+      // Delete object
+      delete state.queriesById[id]
+
+      // Delete index
+      const idIndex = state.queryIds.indexOf(id)
+      state.queryIds.splice(idIndex, 1)
+    })
+  }
 
   return {
     ...state,

@@ -1,4 +1,5 @@
 import { sqlectron } from '../../browser/remote';
+import * as ConnActions from './connections';
 
 
 export const SAVE_SERVER_REQUEST = 'SAVE_SERVER_REQUEST';
@@ -30,14 +31,16 @@ export function saveServer ({ server, id }) {
     try {
       const { config } = getState();
       const cryptoSecret = config.data.crypto.secret;
-
       const data = await sqlectron.servers.addOrUpdate({ id, ...server }, cryptoSecret);
 
       dispatch({
         type: SAVE_SERVER_SUCCESS,
         server: convertToPlainObject(data),
       });
+
+      dispatch(ConnActions.reconnect(id));
     } catch (error) {
+      console.error(error);
       dispatch({ type: SAVE_SERVER_FAILURE, error });
     }
   };
@@ -103,6 +106,6 @@ async function getUniqueName(server, cryptoSecret) {
  * This is necessary because seems there is some bug around React accessing
  * getter properties from objects comming from Electron remote API.
  */
-function convertToPlainObject(item) {
+export function convertToPlainObject(item) {
   return JSON.parse(JSON.stringify(item));
 }

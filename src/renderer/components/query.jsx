@@ -8,6 +8,9 @@ import 'brace/ext/language_tools';
 import 'brace/ext/searchbox';
 import QueryResult from './query-result.jsx';
 import ServerDBClientInfoModal from './server-db-client-info-modal.jsx';
+import * as QueryActions from '../actions/queries';
+import filter from 'lodash.filter'
+
 
 import { ResizableBox } from 'react-resizable';
 require('./react-resizable.css');
@@ -43,6 +46,7 @@ export default class Query extends Component {
     client: PropTypes.string.isRequired,
     allowCancel: PropTypes.bool.isRequired,
     query: PropTypes.object.isRequired,
+    queries: PropTypes.object.isRequired,
     enabledAutoComplete: PropTypes.bool.isRequired,
     enabledLiveAutoComplete: PropTypes.bool.isRequired,
     databases: PropTypes.array,

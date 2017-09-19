@@ -23,8 +23,9 @@ class AppContainer extends Component {
     this.state = {};
   }
 
-  componentDidMount() {
-    this.props.dispatch(ConfigActions.loadConfig());
+  async componentDidMount() {
+    await this.props.dispatch(ConfigActions.loadConfig());
+    this.props.router.push('/server/kissmetrics');
   }
 
   componentWillReceiveProps(newProps) {
