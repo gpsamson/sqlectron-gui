@@ -427,12 +427,17 @@ class QueryBrowserContainer extends Component {
       databases,
       schemas,
       tables,
+      events,
+      properties,
       columns,
       triggers,
       indexes,
       views,
       routines,
     } = this.props;
+
+    console.log(events)
+    console.log(properties)
 
     const currentDB = this.getCurrentQuery().database;
 
@@ -514,6 +519,8 @@ class QueryBrowserContainer extends Component {
             databases={databases.items}
             schemas={schemas.itemsByDatabase[query.database]}
             tables={tables.itemsByDatabase[query.database]}
+            events={events.itemsByDatabase[query.database]}
+            properties={properties.itemsByDatabase[query.database]}
             columnsByTable={columns.columnsByTable[query.database]}
             triggersByTable={triggers.triggersByTable[query.database]}
             indexesByTable={indexes.indexesByTable[query.database]}

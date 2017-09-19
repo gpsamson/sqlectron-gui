@@ -11,7 +11,6 @@ import ServerDBClientInfoModal from './server-db-client-info-modal.jsx';
 import * as QueryActions from '../actions/queries';
 import filter from 'lodash.filter'
 
-
 import { ResizableBox } from 'react-resizable';
 require('./react-resizable.css');
 require('./override-ace.css');
@@ -87,6 +86,8 @@ export default class Query extends Component {
 
     const isMetadataChanged = (
       ((nextProps.tables || []).length !== (this.props.tables || []).length)
+      || ((nextProps.events || []).length !== (this.props.events || []).length)
+      || ((nextProps.properties || []).length !== (this.props.properties || []).length)
       || ((nextProps.views || []).length !== (this.props.views || []).length)
       || ((nextProps.functions || []).length !== (this.props.functions || []).length)
       || ((nextProps.procedures || []).length !== (this.props.procedures || []).length)
@@ -177,6 +178,8 @@ export default class Query extends Component {
       databases,
       schemas,
       tables,
+      events,
+      properties,
       columnsByTable,
       triggersByTable,
       indexesByTable,
@@ -192,7 +195,7 @@ export default class Query extends Component {
           .reduce((all, name) => all.concat(items[name]), []);
       }
 
-      return (result || []).map(({ name }) => ({ name, type }));
+      return (result || []).map(({ ogName, name }) => ({ ogName, name, type }));
     };
 
     return [
@@ -205,7 +208,9 @@ export default class Query extends Component {
       ...mapCompletionTypes(views, 'view'),
       ...mapCompletionTypes(functions, 'function'),
       ...mapCompletionTypes(procedures, 'procedure'),
-    ].map(({ name, type }) => ({ name, value: name, score: 1, meta: type }));
+      ...mapCompletionTypes(events, 'event'),
+      ...mapCompletionTypes(properties, 'properties'),
+    ].map(({ ogName, name, type }) => ({ name: ogName || name, value: ogName || name, score: 1, meta: type }));
   }
 
   getCommands () {
